@@ -3,37 +3,8 @@ import uuid
 from typing import Any, Callable, Dict, Optional
 
 from models import Task, TaskError, TaskResult, TaskStatus, CaptchaType, _CaptchaTypeToTaskFunction
-from dotenv import load_dotenv
-from abc import ABC, abstractmethod
 
-load_dotenv()
-
-class TaskService(ABC):
-    @abstractmethod
-    def solve_captcha(self, captcha_type: CaptchaType, *args: Any, **kwargs: Any) -> str:
-        """
-        Solves a captcha.
-        Args:
-            captcha_type: The type of captcha to solve.
-            *args: The arguments to pass to the function.
-            **kwargs: The keyword arguments to pass to the function.
-
-        Returns:
-            The request ID.
-        """
-        pass
-
-    @abstractmethod
-    def get_captcha_solution(self, request_id: str) -> Optional[Task]:
-        """
-        Retrieves the task responsible for solving the captcha.
-        Args:
-            `request_id`: The ID of the request associated to this task.
-
-        Returns:
-            The task
-        """
-        pass
+from interfaces.task_service import TaskService
 
 class InMemoryTaskServiceImpl(TaskService):
     """
@@ -146,24 +117,3 @@ class InMemoryTaskServiceImpl(TaskService):
 
         # TODO: figure out why this feels wrong, like there's some design or abstraction that's not properly done here.. yet to figure this out
         return self.get_task(request_id=request_id)
-
-
-_task_service_instance: Optional[TaskService] = None
-
-def get_task_service() -> TaskService:
-    """
-    Factory that returns a singleton `TaskService` instance.
-    Currently backed by `InMemoryTaskServiceImpl`.
-    """
-    global _task_service_instance
-    if _task_service_instance is None:
-        _task_service_instance = InMemoryTaskServiceImpl()
-    return _task_service_instance
-
-
-def solve_captcha(captcha_type: CaptchaType, *args: Any, **kwargs: Any) -> str:
-    """
-    Convenience function that delegates to the singleton `TaskService`.
-    """
-    service = get_task_service()
-    return service.solve_captcha(captcha_type, *args, **kwargs)

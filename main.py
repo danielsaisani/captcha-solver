@@ -1,14 +1,12 @@
 from fastapi import FastAPI, HTTPException, Security, status
 from auth import verify_api_key
-from models import CaptchaSolveRequest, CaptchaSolveRequestResponse, CaptchaSolutionRequestResponse, TaskToCaptchaSolutionAdapter, CaptchaType
-
-from task_service import TaskService, get_task_service, solve_captcha
 from dotenv import load_dotenv
 
+from models import CaptchaSolveRequest, CaptchaSolveRequestResponse, CaptchaSolutionRequestResponse, TaskToCaptchaSolutionAdapter, CaptchaType
+from implementations.task_service.utils import solve_captcha, get_captcha_solution
 
 load_dotenv()
 app = FastAPI()
-
 
 @app.post("/solve_basic_captcha", status_code=status.HTTP_202_ACCEPTED, dependencies=[Security(verify_api_key, use_cache=False)])
 async def solve_basic_captcha(request: CaptchaSolveRequest) -> CaptchaSolveRequestResponse:
@@ -26,7 +24,7 @@ async def solve_basic_captcha(request: CaptchaSolveRequest) -> CaptchaSolveReque
 
 
 @app.get("/captcha_solution_request/{request_id}", dependencies=[Security(verify_api_key, use_cache=False)])
-async def get_captcha_solution(request_id: str) -> CaptchaSolutionRequestResponse:
+async def get_captcha_solution_request(request_id: str) -> CaptchaSolutionRequestResponse:
     """
     Gets the status of a previously submitted captcha solving request.
     Args:
@@ -36,8 +34,7 @@ async def get_captcha_solution(request_id: str) -> CaptchaSolutionRequestRespons
         The status of the previously submitted captcha solving request.
     """
 
-    task_service: TaskService = get_task_service()
-    task = task_service.get_task(request_id)
+    task = get_captcha_solution(request_id)
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
     return TaskToCaptchaSolutionAdapter(task)

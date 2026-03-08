@@ -3,6 +3,7 @@ from typing import Any
 
 oai = OpenAI()
 
+# TODO: allow for dependency injection to enable mocking and other testing fun stuff also allows for model switching nicely
 async def solve_basic_captcha_task(image_data_base: str, **kwargs: Any) -> str:
     """
     Solves a basic captcha.
