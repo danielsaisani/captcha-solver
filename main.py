@@ -1,16 +1,13 @@
 from fastapi import FastAPI, HTTPException, Security, status
 from auth import verify_api_key
-from models import CaptchaSolveRequest, CaptchaSolveRequestResponse, CaptchaSolutionRequestResponse, TaskToCaptchaSolutionAdapter
+from models import CaptchaSolveRequest, CaptchaSolveRequestResponse, CaptchaSolutionRequestResponse, TaskToCaptchaSolutionAdapter, CaptchaType
 
-from task_service import TaskService
-from tasks import basic_captcha
+from task_service import TaskService, get_task_service, solve_captcha
 from dotenv import load_dotenv
 
 
 load_dotenv()
 app = FastAPI()
-# TODO: Instantiate this as a singleton with some interface instead of a concrete class
-task_service = TaskService()
 
 
 @app.post("/solve_basic_captcha", status_code=status.HTTP_202_ACCEPTED, dependencies=[Security(verify_api_key, use_cache=False)])
@@ -24,9 +21,7 @@ async def solve_basic_captcha(request: CaptchaSolveRequest) -> CaptchaSolveReque
         The request ID.
     """
 
-    # use the task id as the request id
-    # TODO: "enumify" the type of task so that task implementations aren't exposed to the API layer and so we don't need to import the task service impl
-    request_id = await task_service.create_task(basic_captcha.solve_basic_captcha_task, request.image_data)
+    request_id = solve_captcha(CaptchaType.BASIC, request.image_data)
     return CaptchaSolveRequestResponse(request_id=request_id)
 
 
@@ -41,6 +36,7 @@ async def get_captcha_solution(request_id: str) -> CaptchaSolutionRequestRespons
         The status of the previously submitted captcha solving request.
     """
 
+    task_service: TaskService = get_task_service()
     task = task_service.get_task(request_id)
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")

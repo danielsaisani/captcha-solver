@@ -2,18 +2,46 @@ import asyncio
 import uuid
 from typing import Any, Callable, Dict, Optional
 
-from models import Task, TaskError, TaskResult, TaskStatus
+from models import Task, TaskError, TaskResult, TaskStatus, CaptchaType, _CaptchaTypeToTaskFunction
 from dotenv import load_dotenv
+from abc import ABC, abstractmethod
 
 load_dotenv()
 
-class TaskService:
+class TaskService(ABC):
+    @abstractmethod
+    def solve_captcha(self, captcha_type: CaptchaType, *args: Any, **kwargs: Any) -> str:
+        """
+        Solves a captcha.
+        Args:
+            captcha_type: The type of captcha to solve.
+            *args: The arguments to pass to the function.
+            **kwargs: The keyword arguments to pass to the function.
+
+        Returns:
+            The request ID.
+        """
+        pass
+
+    @abstractmethod
+    def get_captcha_solution(self, request_id: str) -> Optional[Task]:
+        """
+        Retrieves the task responsible for solving the captcha.
+        Args:
+            `request_id`: The ID of the request associated to this task.
+
+        Returns:
+            The task
+        """
+        pass
+
+class InMemoryTaskServiceImpl(TaskService):
     """
-    An in-memory based service for creating and managing tasks.
+    An in-memory based implementation of a task service for creating and managing captcha solving related tasks.
     """
     tasks: Dict[str, Task] = {}
 
-    async def create_task(self, func: Callable, *args: Any, **kwargs: Any) -> str:
+    def create_task(self, func: Callable, *args: Any, **kwargs: Any) -> str:
         """
         Creates a new task and runs it asynchronously.
         Args:
@@ -90,3 +118,52 @@ class TaskService:
         task = self.tasks.get(request_id)
         return task if task else None
 
+    def solve_captcha(self, captcha_type: CaptchaType, *args: Any, **kwargs: Any) -> str:
+        """
+        Solves a captcha.
+        Args:
+            captcha_type: The type of captcha to solve.
+            *args: The arguments to pass to the function.
+            **kwargs: The keyword arguments to pass to the function.
+
+        Returns:
+            The request ID.
+        """
+        task_function = _CaptchaTypeToTaskFunction.get(captcha_type)
+        if not task_function:
+            raise ValueError(f"No task function found for captcha type: {captcha_type}")
+        return self.create_task(task_function, *args, **kwargs)
+    
+    def get_captcha_solution(self, request_id: str) -> Optional[Task]:
+        """
+        Retrieves the task responsible for solving the captcha.
+        Args:
+            `request_id`: The ID of the request associated to this task.
+
+        Returns:
+            The task
+        """
+
+        # TODO: figure out why this feels wrong, like there's some design or abstraction that's not properly done here.. yet to figure this out
+        return self.get_task(request_id=request_id)
+
+
+_task_service_instance: Optional[TaskService] = None
+
+def get_task_service() -> TaskService:
+    """
+    Factory that returns a singleton `TaskService` instance.
+    Currently backed by `InMemoryTaskServiceImpl`.
+    """
+    global _task_service_instance
+    if _task_service_instance is None:
+        _task_service_instance = InMemoryTaskServiceImpl()
+    return _task_service_instance
+
+
+def solve_captcha(captcha_type: CaptchaType, *args: Any, **kwargs: Any) -> str:
+    """
+    Convenience function that delegates to the singleton `TaskService`.
+    """
+    service = get_task_service()
+    return service.solve_captcha(captcha_type, *args, **kwargs)
