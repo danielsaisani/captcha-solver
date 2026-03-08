@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
 
+from tasks import basic_captcha
+
 class CaptchaSolveRequest(BaseModel):
     image_data: str  # Base64 encoded image data
 
@@ -11,6 +13,17 @@ class ErrorResponse(BaseModel):
 class CaptchaSolveRequestResponse(BaseModel):
     request_id: Optional[str] = None
     error: Optional[ErrorResponse] = None
+
+
+class CaptchaType(Enum):
+    """
+    The type of captcha.
+    """
+    BASIC = "BASIC"
+
+_CaptchaTypeToTaskFunction = {
+    CaptchaType.BASIC: basic_captcha.solve_basic_captcha_task,
+}
 
 class TaskStatus(Enum):
     """
