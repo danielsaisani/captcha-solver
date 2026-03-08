@@ -38,3 +38,7 @@ async def get_captcha_solution_request(request_id: str) -> CaptchaSolutionReques
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
     return TaskToCaptchaSolutionAdapter(task)
+
+@app.get("/health", status_code=status.HTTP_200_OK)
+async def health():
+    return
