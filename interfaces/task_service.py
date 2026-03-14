@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
+from interfaces.service import Service
 from models import CaptchaType, Task
 from typing import Any, Optional
 
-class TaskService(ABC):
+class TaskService(Service):
     @abstractmethod
     def solve_captcha(self, captcha_type: CaptchaType, *args: Any, **kwargs: Any) -> str:
         """

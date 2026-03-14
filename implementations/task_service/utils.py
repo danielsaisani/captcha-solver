@@ -1,7 +1,6 @@
 from implementations.task_service.in_memory_task_service import InMemoryTaskServiceImpl
 from interfaces.task_service import TaskService
-from models import CaptchaType, Task
-from typing import Any, Optional
+from typing import Optional
 
 _task_service_instance: Optional[TaskService] = None
 
